@@ -24,7 +24,10 @@ cmake_minimum_required(VERSION 3.16...3.26)
 project(kiss_icp_pybind VERSION 1.2.1 LANGUAGES CXX)
 
 # Set build type
-set(CMAKE_BUILD_TYPE Release)
+#if (NOT CMAKE_BUILD_TYPE)
+#    set(CMAKE_BUILD_TYPE Debug)
+#endif()
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
