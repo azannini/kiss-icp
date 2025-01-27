@@ -31,6 +31,7 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+import launch_testing
 
 # This configuration parameters are not exposed thorught the launch system, meaning you can't modify
 # those throw the ros launch CLI. If you need to change these values, you could write your own
@@ -39,7 +40,7 @@ class config:
     # Preprocessing
     max_range: float = 100.0
     min_range: float = 5.0
-    deskew: bool = False
+    deskew: bool = True
 
     #  Mapping parameters
     voxel_size: float = max_range / 100.0
@@ -70,11 +71,12 @@ def generate_launch_description():
     bagfile = LaunchConfiguration("bagfile", default="")
 
     # tf tree configuration, these are the likely parameters to change and nothing else
-    base_frame = LaunchConfiguration("base_frame", default="")  # (base_link/base_footprint)
+    base_frame = LaunchConfiguration("base_frame", default="base_link")  # (base_link/base_footprint)
     lidar_odom_frame = LaunchConfiguration("lidar_odom_frame", default="odom_lidar")
-    publish_odom_tf = LaunchConfiguration("publish_odom_tf", default=True)
+    publish_odom_tf = LaunchConfiguration("publish_odom_tf", default=False)
     invert_odom_tf = LaunchConfiguration("invert_odom_tf", default=True)
-
+    deskew = LaunchConfiguration("deskew", default=True)
+    
     # KISS-ICP node
     kiss_icp_node = Node(
         package="kiss_icp",
@@ -84,6 +86,13 @@ def generate_launch_description():
         remappings=[
             ("pointcloud_topic", pointcloud_topic),
         ],
+        # parameters=[
+        #     PathJoinSubstitution([
+        #         FindPackageShare("kiss_icp"),
+        #         "config",
+        #         "launch_params.yaml",
+        #     ]),
+        # ],
         parameters=[
             {
                 # ROS node configuration
@@ -94,7 +103,7 @@ def generate_launch_description():
                 # KISS-ICP configuration
                 "max_range": config.max_range,
                 "min_range": config.min_range,
-                "deskew": config.deskew,
+                "deskew": deskew,
                 "max_points_per_voxel": config.max_points_per_voxel,
                 "voxel_size": config.voxel_size,
                 # Adaptive threshold
@@ -113,6 +122,7 @@ def generate_launch_description():
             },
         ],
     )
+
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",

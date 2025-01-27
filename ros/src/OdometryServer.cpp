@@ -110,6 +110,19 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
         "pointcloud_topic", rclcpp::SensorDataQoS(),
         std::bind(&OdometryServer::RegisterFrame, this, std::placeholders::_1));
 
+    vel_est_sub_ = 
+    create_subscription<tf2_msgs::msg::TFMessage>(
+        "tf", rclcpp::SystemDefaultsQoS(),
+        [this](const tf2_msgs::msg::TFMessage::SharedPtr msg) {
+            for (const auto &transform : msg->transforms) {
+                if (transform.header.frame_id == "odom" && transform.child_frame_id == "base_link") {
+                    // Process the transform
+                    // RCLCPP_INFO(this->get_logger(), "Received transform from odom to base_link");
+                      kiss_icp_->UpdateInitialGuess(tf2::transformToSophus(transform));
+                }
+            }
+        });
+
     // Initialize publishers
     rclcpp::QoS qos((rclcpp::SystemDefaultsQoS().keep_last(1).durability_volatile()));
     odom_publisher_ = create_publisher<nav_msgs::msg::Odometry>("kiss/odometry", qos);
@@ -195,6 +208,7 @@ void OdometryServer::PublishClouds(const std::vector<Eigen::Vector3d> frame,
                                    const std::vector<Eigen::Vector3d> keypoints,
                                    const std_msgs::msg::Header &header) {
     const auto kiss_map = kiss_icp_->LocalMap();
+    //TODO(Andrea): probably this can be deleted since it's not used
     const auto kiss_pose = kiss_icp_->pose().inverse();
 
     frame_publisher_->publish(std::move(EigenToPointCloud2(frame, header)));

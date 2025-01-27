@@ -80,7 +80,7 @@ def load_config(
 
     # Check if there is a possible mistake
     if config.data.max_range < config.data.min_range:
-        print("[WARNING] max_range is smaller than min_range, settng min_range to 0.0")
+        print("[WARNING] max_range is smaller than min_range, setting min_range to 0.0")
         config.data.min_range = 0.0
 
     # Use specified voxel size or compute one using the max range

@@ -40,18 +40,27 @@ class KissICP:
         self.registration = get_registration(self.config)
         self.local_map = get_voxel_hash_map(self.config)
 
-    def register_frame(self, frame, timestamps):
+    def register_frame(self, frame, timestamps, kf_pose=None):
         # Apply motion compensation
         frame = self.preprocessor.preprocess(frame, timestamps, self.last_delta)
 
-        # Voxelize
+        # Voxelize 
+        # source (1.5): the most downsampled map --> used for ICP registration
+        # frame_downsample (0.5): intermediate downsample --> used as local map
         source, frame_downsample = self.voxelize(frame)
 
         # Get adaptive_threshold
         sigma = self.adaptive_threshold.get_threshold()
 
         # Compute initial_guess for ICP
-        initial_guess = self.last_pose @ self.last_delta
+        if kf_pose is not None:
+            initial_guess = kf_pose  # Use the KF pose if provided
+        else:
+            initial_guess = self.last_pose @ self.last_delta  # Fallback to constant velocity
+
+
+        # # Compute initial_guess for ICP
+        # initial_guess = self.last_pose @ self.last_delta
 
         # Run ICP
         new_pose = self.registration.align_points_to_map(

@@ -37,6 +37,9 @@ from kiss_icp.tools.pipeline_results import PipelineResults
 from kiss_icp.tools.progress_bar import get_progress_bar
 from kiss_icp.tools.visualizer import Kissualizer, StubVisualizer
 
+import tf2_ros
+import rospy
+
 
 class OdometryPipeline:
     def __init__(
@@ -84,7 +87,49 @@ class OdometryPipeline:
         if hasattr(self._dataset, "use_global_visualizer"):
             self.visualizer._global_view = self._dataset.use_global_visualizer
 
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+    
     # Public interface  ------
+    def get_kf_pose(self):
+        try:
+            trans = self.tf_buffer.lookup_transform(
+                "odom", "base_link", rospy.Time(0), rospy.Duration(0.1)
+            )
+            return self.transform_to_SE3(trans)  # Convert to SE3
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException):
+            return None
+
+    def transform_to_SE3(self, trans):
+        # Convert ROS TransformStamped to a 4x4 matrix (SE3)
+        translation = trans.transform.translation
+        rotation = trans.transform.rotation
+        transform_matrix = np.eye(4)
+        '''TODO(Andrea): Quaternion is scalar first or last?
+        transforms:
+            - header:
+                stamp:
+                sec: 1723884202
+                nanosec: 492471250
+                frame_id: odom
+            child_frame_id: base_link
+            transform:
+                translation:
+                x: 3.769471483072266
+                y: -0.0951357927360732
+                z: 0.0
+                rotation:
+                x: 0.0
+                y: 0.0
+                z: -0.025380034013188287
+                w: 0.9996778750545045
+        '''
+        transform_matrix[:3, :3] = Quaternion(
+            rotation.w, rotation.x, rotation.y, rotation.z
+        ).rotation_matrix
+        transform_matrix[:3, 3] = [translation.x, translation.y, translation.z]
+        return transform_matrix
+    
     def run(self):
         self._run_pipeline()
         self._run_evaluation()
@@ -99,8 +144,9 @@ class OdometryPipeline:
     def _run_pipeline(self):
         for idx in get_progress_bar(self._first, self._last):
             raw_frame, timestamps = self._next(idx)
+            kf_pose = self.get_kf_pose()  # Get the KF pose
             start_time = time.perf_counter_ns()
-            source, keypoints = self.odometry.register_frame(raw_frame, timestamps)
+            source, keypoints = self.odometry.register_frame(raw_frame, timestamps, kf_pose)
             self.poses[idx - self._first] = self.odometry.last_pose
             self.times[idx - self._first] = time.perf_counter_ns() - start_time
 
