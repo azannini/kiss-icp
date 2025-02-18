@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "kiss-icp"
-version = "1.2.1"
+version = "1.2.2"
 description = "Simple yet effective 3D LiDAR-Odometry registration pipeline"
 readme = "README.md"
 authors = [
@@ -40,7 +40,6 @@ classifiers = [
 dependencies = [
     "natsort",
     "numpy",
-    "plyfile",
     "pydantic>=2",
     "pydantic-settings",
     "pyquaternion",
@@ -51,7 +50,7 @@ dependencies = [
 
 [project.optional-dependencies]
 all = [
-    "open3d>=0.13",
+    "open3d>=0.16",
     "polyscope>=2.2.1",
     "ouster-sdk>=0.11",
     "pyntcloud",

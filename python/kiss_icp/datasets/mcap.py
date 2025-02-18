@@ -23,6 +23,8 @@
 import os
 import sys
 
+import numpy as np
+
 
 class McapDataloader:
     def __init__(self, data_dir: str, topic: str, *_, **__):
