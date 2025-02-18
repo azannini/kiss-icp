@@ -40,6 +40,8 @@
 #include "VoxelHashMap.hpp"
 #include "VoxelUtils.hpp"
 
+#include <easy/profiler.h>
+
 namespace Eigen {
 using Matrix6d = Eigen::Matrix<double, 6, 6>;
 using Matrix3_6d = Eigen::Matrix<double, 3, 6>;
@@ -140,6 +142,7 @@ Sophus::SE3d Registration::AlignPointsToMap(const std::vector<Eigen::Vector3d> &
                                             const Sophus::SE3d &initial_guess,
                                             const double max_distance,
                                             const double kernel_scale) {
+    EASY_FUNCTION(profiler::colors::Purple100);                                                
     if (voxel_map.Empty()) return initial_guess;
 
     // Equation (9)

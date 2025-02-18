@@ -31,6 +31,7 @@
 #include "kiss_icp/core/Threshold.hpp"
 #include "kiss_icp/core/VoxelHashMap.hpp"
 
+#include <easy/profiler.h>
 namespace kiss_icp::pipeline {
 
 struct KISSConfig {
@@ -65,7 +66,11 @@ public:
           registration_(
               config.max_num_iterations, config.convergence_criterion, config.max_num_threads),
           local_map_(config.voxel_size, config.max_range, config.max_points_per_voxel),
-          adaptive_threshold_(config.initial_threshold, config.min_motion_th, config.max_range) {}
+          adaptive_threshold_(config.initial_threshold, config.min_motion_th, config.max_range) {
+            // EASY_THREAD("KISS-ICP Thread");
+            EASY_PROFILER_ENABLE;
+            // profiler::startListen();
+          }
 
 public:
     Vector3dVectorTuple RegisterFrame(const std::vector<Eigen::Vector3d> &frame,

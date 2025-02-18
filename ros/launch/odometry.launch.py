@@ -33,13 +33,23 @@ from launch_ros.substitutions import FindPackageShare
 
 import launch_testing
 
+
+# PARAMS --> only change this from Ouster to Hesai
+ouster = False
+
+# The above automatically sets the following:
+topic = "ouster/points" if ouster else "lidar_points"
+lidar_frame = "os_lidar" if ouster else "hesai_lidar"
+rviz_config = "kiss_icp_ouster.rviz" if ouster else "kiss_icp_hesai.rviz"
+
 # This configuration parameters are not exposed thorught the launch system, meaning you can't modify
-# those throw the ros launch CLI. If you need to change these values, you could write your own
+# those through the ros launch CLI. If you need to change these values, you could write your own
 # launch file and modify the 'parameters=' block from the Node class.
+# TODO(Andrea): add these params to yaml file
 class config:
     # Preprocessing
     max_range: float = 100.0
-    min_range: float = 5.0
+    min_range: float = 0.0
     deskew: bool = True
 
     #  Mapping parameters
@@ -53,7 +63,7 @@ class config:
     # Registration
     max_num_iterations: int = 500  #
     convergence_criterion: float = 0.0001
-    max_num_threads: int = 0
+    max_num_threads: int = 12
 
     # Covariance diagonal values
     position_covariance: float = 0.1
@@ -63,19 +73,21 @@ class config:
 def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time", default="true")
 
+    
     # ROS configuration
-    pointcloud_topic = LaunchConfiguration("topic")
+    pointcloud_topic = LaunchConfiguration("topic", default=topic) #ouster/points with Ouster, /lidar_points with Hesai
     visualize = LaunchConfiguration("visualize", default="true")
 
     # Optional ros bag play
     bagfile = LaunchConfiguration("bagfile", default="")
 
     # tf tree configuration, these are the likely parameters to change and nothing else
-    base_frame = LaunchConfiguration("base_frame", default="base_link")  # (base_link/base_footprint)
-    lidar_odom_frame = LaunchConfiguration("lidar_odom_frame", default="odom_lidar")
-    publish_odom_tf = LaunchConfiguration("publish_odom_tf", default=False)
-    invert_odom_tf = LaunchConfiguration("invert_odom_tf", default=True)
+    base_frame = LaunchConfiguration("base_frame", default="")  # (base_link/base_footprint)
+    lidar_odom_frame = LaunchConfiguration("lidar_odom_frame", default=lidar_frame) #os_lidar for Ouster (old rosbags), hesai_lidar for Hesai (new rosbags)
+    publish_odom_tf = LaunchConfiguration("publish_odom_tf", default=True)
+    invert_odom_tf = LaunchConfiguration("invert_odom_tf", default=False)
     deskew = LaunchConfiguration("deskew", default=True)
+    # prior = LaunchConfiguration("prior", default="IMU") # (IMU/constant/combined)
     
     # KISS-ICP node
     kiss_icp_node = Node(
@@ -86,6 +98,7 @@ def generate_launch_description():
         remappings=[
             ("pointcloud_topic", pointcloud_topic),
         ],
+        # TODO(Andrea): go back to .yaml configuration file 
         # parameters=[
         #     PathJoinSubstitution([
         #         FindPackageShare("kiss_icp"),
@@ -129,7 +142,7 @@ def generate_launch_description():
         output="screen",
         arguments=[
             "-d",
-            PathJoinSubstitution([FindPackageShare("kiss_icp"), "rviz", "kiss_icp.rviz"]),
+            PathJoinSubstitution([FindPackageShare("kiss_icp"), "rviz", rviz_config]),
         ],
         condition=IfCondition(visualize),
     )

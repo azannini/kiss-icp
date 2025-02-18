@@ -49,12 +49,14 @@ find_package(rcutils REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(easy_profiler REQUIRED)
 
 # ROS 2 node
 add_library(odometry_component SHARED src/OdometryServer.cpp)
 target_compile_features(odometry_component PUBLIC cxx_std_20)
 target_include_directories(odometry_component PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(odometry_component kiss_icp_pipeline)
+target_link_libraries(odometry_component easy_profiler)
 ament_target_dependencies(
   odometry_component
   geometry_msgs

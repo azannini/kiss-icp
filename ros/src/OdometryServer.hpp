@@ -43,6 +43,7 @@ public:
     /// OdometryServer constructor
     OdometryServer() = delete;
     explicit OdometryServer(const rclcpp::NodeOptions &options);
+    ~OdometryServer();
 
 private:
     /// Register new frame
@@ -55,6 +56,8 @@ private:
     void PublishClouds(const std::vector<Eigen::Vector3d> frame,
                        const std::vector<Eigen::Vector3d> keypoints,
                        const std_msgs::msg::Header &header);
+
+    void PublishIMUOdometry(const Sophus::SE3d &transform, const std_msgs::msg::Header &header);
 
 private:
     /// Tools for broadcasting TFs.
@@ -69,11 +72,13 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
     rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr vel_est_sub_;
 
+
     /// Data publishers.
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr frame_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr kpoints_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_publisher_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr IMU_odom_publisher_;
 
     /// KISS-ICP
     std::unique_ptr<kiss_icp::pipeline::KissICP> kiss_icp_;

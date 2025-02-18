@@ -44,6 +44,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <easy/profiler.h>
 
 namespace {
 Sophus::SE3d LookupTransform(const std::string &target_frame,
@@ -119,6 +120,7 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
                     // Process the transform
                     // RCLCPP_INFO(this->get_logger(), "Received transform from odom to base_link");
                       kiss_icp_->UpdateInitialGuess(tf2::transformToSophus(transform));
+                      this->PublishIMUOdometry(tf2::transformToSophus(transform), transform.header);
                 }
             }
         });
@@ -126,6 +128,7 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
     // Initialize publishers
     rclcpp::QoS qos((rclcpp::SystemDefaultsQoS().keep_last(1).durability_volatile()));
     odom_publisher_ = create_publisher<nav_msgs::msg::Odometry>("kiss/odometry", qos);
+    IMU_odom_publisher_ = create_publisher<nav_msgs::msg::Odometry>("kiss/IMU_odometry", qos);
     if (publish_debug_clouds_) {
         frame_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("kiss/frame", qos);
         kpoints_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("kiss/keypoints", qos);
@@ -137,16 +140,28 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
     tf2_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     tf2_buffer_->setUsingDedicatedThread(true);
     tf2_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf2_buffer_);
-
+    
     RCLCPP_INFO(this->get_logger(), "KISS-ICP ROS 2 odometry node initialized");
+
+    EASY_PROFILER_ENABLE;
+    // profiler::startListen();
+    RCLCPP_INFO(this->get_logger(), "Easy Profiler started");
+}
+
+OdometryServer::~OdometryServer() {
+    profiler::dumpBlocksToFile("kiss_icp_profile.prof");  // Save profiling data before exit
+    RCLCPP_INFO(this->get_logger(), "Profiling data saved!");
 }
 
 void OdometryServer::RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg) {
+    // EASY_FUNCTION(profiler::colors::Red); // Time this function
     const auto cloud_frame_id = msg->header.frame_id;
     const auto points = PointCloud2ToEigen(msg);
     const auto timestamps = GetTimestamps(msg);
 
     // Register frame, main entry point to KISS-ICP pipeline
+    // frame: original voxelized map
+    // keypoints(source): features used to update ICP [subsample of frame_downsample]
     const auto &[frame, keypoints] = kiss_icp_->RegisterFrame(points, timestamps);
 
     // Extract the last KISS-ICP pose, ego-centric to the LiDAR
@@ -159,6 +174,26 @@ void OdometryServer::RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSha
         PublishClouds(frame, keypoints, msg->header);
     }
 }
+
+
+void OdometryServer::PublishIMUOdometry(const Sophus::SE3d &transform, const std_msgs::msg::Header &header){
+    // EASY_FUNCTION(profiler::colors::Green); // Time this function
+    // EASY_BLOCK("Publish IMU Odometry step", profiler::colors::Red);
+    // const auto egocentric_estimation = (base_frame_.empty() || base_frame_ == cloud_frame_id);
+    
+    
+    // TODO(Andrea): change this (it's only for ego_motion)
+    nav_msgs::msg::Odometry odom_msg;
+    odom_msg.header.stamp = header.stamp;
+    odom_msg.header.frame_id = this->lidar_odom_frame_;
+    odom_msg.child_frame_id = this->lidar_odom_frame_;
+    odom_msg.pose.pose = tf2::sophusToPose(transform);
+
+    odom_msg.pose.covariance.fill(0.0);
+    IMU_odom_publisher_->publish(std::move(odom_msg));
+    // EASY_END_BLOCK;
+}
+
 
 void OdometryServer::PublishOdometry(const Sophus::SE3d &kiss_pose,
                                      const std_msgs::msg::Header &header) {
@@ -185,6 +220,8 @@ void OdometryServer::PublishOdometry(const Sophus::SE3d &kiss_pose,
             transform_msg.child_frame_id = moving_frame;
             transform_msg.transform = tf2::sophusToTransform(pose);
         }
+        RCLCPP_DEBUG(get_logger(), "Broadcasting transform from %s to %s",
+                 transform_msg.header.frame_id.c_str(), transform_msg.child_frame_id.c_str());
         tf_broadcaster_->sendTransform(transform_msg);
     }
 
