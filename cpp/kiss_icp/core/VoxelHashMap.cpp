@@ -84,8 +84,7 @@ std::vector<Eigen::Vector3d> VoxelHashMap::Pointcloud() const {
 
 void VoxelHashMap::Update(const std::vector<Eigen::Vector3d> &points,
                           const Eigen::Vector3d &origin) {
-    EASY_FUNCTION(profiler::colors::Grey800);
-                            
+                        
     AddPoints(points);
     RemovePointsFarFromLocation(origin);
 }

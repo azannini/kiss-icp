@@ -37,7 +37,6 @@
 #include <easy/profiler.h>
 
 namespace kiss_icp {
-EASY_PROFILER_ENABLE;
 
 Preprocessor::Preprocessor(const double max_range,
                            const double min_range,
@@ -57,7 +56,7 @@ Preprocessor::Preprocessor(const double max_range,
 std::vector<Eigen::Vector3d> Preprocessor::Preprocess(const std::vector<Eigen::Vector3d> &frame,
                                                       const std::vector<double> &timestamps,
                                                       const Sophus::SE3d &relative_motion) const {
-    EASY_FUNCTION(profiler::colors::Blue100);
+    // EASY_FUNCTION(profiler::colors::Blue100);
     const std::vector<Eigen::Vector3d> &deskewed_frame = [&]() {
         if (!deskew_ || timestamps.empty()) {
             return frame;

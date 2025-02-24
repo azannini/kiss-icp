@@ -32,20 +32,16 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
-import launch_testing
 
 
-# PARAMS --> only change this from Ouster to Hesai
-# ouster = True
+import os
+from launch.actions import IncludeLaunchDescription
+from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
+# from launch import LaunchDescription
+# from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 
-# The above automatically sets the following:
-# topic = "ouster/points" if ouster else "/lidar_points"
-# lidar_frame = "os_lidar" if ouster else "hesai_lidar"
-# rviz_config = "kiss_icp_ouster.rviz" if ouster else "kiss_icp_hesai.rviz"
 
-# This configuration parameters are not exposed thorught the launch system, meaning you can't modify
-# those through the ros launch CLI. If you need to change these values, you could write your own
-# launch file and modify the 'parameters=' block from the Node class.
 class config:
     # Preprocessing
     max_range: float = 100.0
@@ -74,9 +70,6 @@ def generate_launch_description():
     # Change this from terminal 
     lidar_model = LaunchConfiguration("lidar_model", default="hesai")
     
-    # ROS configuration
-    visualize = LaunchConfiguration("visualize", default="true")
-
     # Optional ros bag play
     bagfile = LaunchConfiguration("bagfile", default="")
 
@@ -104,15 +97,13 @@ def generate_launch_description():
         parameters=[param_file_path],
     )
 
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        output="screen",
-        arguments=[
-            "-d",
-            PathJoinSubstitution([FindPackageShare("kiss_icp"), "rviz", "kiss_icp.rviz"]),
-        ],
-        condition=IfCondition(visualize),
+    visualization = IncludeLaunchDescription(
+        XMLLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("foxglove_bridge"),
+                "launch/foxglove_bridge_launch.xml",
+            )
+        )
     )
 
     bagfile_play = ExecuteProcess(
@@ -125,9 +116,7 @@ def generate_launch_description():
         [
             log_param_file,
             kiss_icp_node,
-            rviz_node,
+            visualization,
             bagfile_play,
         ]
     )
-
-

@@ -23,4 +23,5 @@
 add_library(kiss_icp_metrics STATIC)
 target_sources(kiss_icp_metrics PRIVATE Metrics.cpp)
 target_link_libraries(kiss_icp_metrics PUBLIC Eigen3::Eigen)
+target_link_libraries(kiss_icp_metrics PRIVATE easy_profiler)
 set_global_target_properties(kiss_icp_metrics)

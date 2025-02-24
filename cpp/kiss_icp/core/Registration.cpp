@@ -142,7 +142,7 @@ Sophus::SE3d Registration::AlignPointsToMap(const std::vector<Eigen::Vector3d> &
                                             const Sophus::SE3d &initial_guess,
                                             const double max_distance,
                                             const double kernel_scale) {
-    EASY_FUNCTION(profiler::colors::Purple100);                                                
+    // EASY_FUNCTION(profiler::colors::Purple100);                                                
     if (voxel_map.Empty()) return initial_guess;
 
     // Equation (9)

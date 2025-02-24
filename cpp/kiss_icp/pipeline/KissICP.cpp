@@ -30,13 +30,17 @@
 #include "kiss_icp/core/Registration.hpp"
 #include "kiss_icp/core/VoxelHashMap.hpp"
 #include "easy/profiler.h"
+#include <iostream>
 
 namespace kiss_icp::pipeline {
 
-KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const std::vector<Eigen::Vector3d> &frame,
+KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const bool is_vehicle_moving,
+                                                    const Sophus::SE3d delta_pose,
+                                                    const std::vector<Eigen::Vector3d> &frame,
                                                     const std::vector<double> &timestamps) {
     // EASY_THREAD("KISS-ICP Thread");
-    EASY_FUNCTION(profiler::colors::Magenta);
+    EASY_FUNCTION(profiler::colors::Purple);
+
     EASY_BLOCK("Preprocessing", profiler::colors::Red);
     // Preprocess the input cloud
     const auto &preprocessed_frame = preprocessor_.Preprocess(frame, timestamps, last_delta_);
@@ -44,40 +48,55 @@ KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const std::vector<Eigen::Vec
 
 
     // Voxelize
-    EASY_BLOCK("Voxelize", profiler::colors::Green);
+    EASY_BLOCK("Voxelize", profiler::colors::Orange);
     const auto &[source, frame_downsample] = Voxelize(preprocessed_frame);
     EASY_END_BLOCK;
 
     // Get adaptive_threshold
-    EASY_BLOCK("ComputeThreshold", profiler::colors::Blue);
+    EASY_BLOCK("ComputeThreshold", profiler::colors::Orange);
     const double sigma = adaptive_threshold_.ComputeThreshold();
     EASY_END_BLOCK;
 
+
     // =========== Compute initial_guess for ICP =========== 
     // ----- constant-velocity approach --------------------
-    const auto initial_guess = last_pose_ * last_delta_;
+    // const auto initial_guess = last_pose_ * last_delta_;
     
-    // ----- IMU prior only -------------------------------
-    // const auto initial_guess = initial_guess_;
+    // ----- IMU prior -------------------------------
+    // use VE delta_pose as initial_guess
+    const auto initial_guess = last_pose_ * delta_pose;
 
     // ----- IMU prior + constant-velocity approach --------
     // const double alpha = 0.8;  // Weight factor on IMU vs. ICP
-    // const auto initial_guess = Sophus::SE3d::exp(alpha * initial_guess_.log() + (1 - alpha) * (last_pose_ * last_delta_).log());
+    // const auto interpolated_delta = Sophus::SE3d::exp(alpha * delta_pose.log() + (1 - alpha) * last_delta_.log());
+    // const auto initial_guess = last_pose_ * interpolated_delta;
 
-
-    // Run ICP
-    const auto new_pose = registration_.AlignPointsToMap(source,         // frame
-                                                         local_map_,     // voxel_map
-                                                         initial_guess,  // initial_guess
-                                                         3.0 * sigma,    // max_correspondence_dist
-                                                         sigma);         // kernel
-
-    // Compute the difference between the prediction and the actual estimate
+    auto new_pose = last_pose_;                                                 
+    if(is_vehicle_moving){
+        // Run ICP
+        EASY_BLOCK("ICP", profiler::colors::Yellow);
+        new_pose = registration_.AlignPointsToMap(source,         // frame
+                                                  local_map_,     // voxel_map
+                                                  initial_guess,  // initial_guess
+                                                  3.0 * sigma,    // max_correspondence_dist
+                                                  sigma);         // kernel
+        EASY_END_BLOCK;
+    }
+              
+   // Compute the difference between the prediction and the actual estimate
     const auto model_deviation = initial_guess.inverse() * new_pose;
+    // std::cout << "Model deviation: ["
+    //           << model_deviation.translation().x() << ", "
+    //           << model_deviation.translation().y() << ", "
+    //           << model_deviation.translation().z() << "]\n" << std::endl;
 
     // Update step: threshold, local map, delta, and the last pose
     adaptive_threshold_.UpdateModelDeviation(model_deviation);
+
+    EASY_BLOCK("Update Local Map", profiler::colors::Green);
     local_map_.Update(frame_downsample, new_pose);
+    EASY_END_BLOCK;
+    
     last_delta_ = last_pose_.inverse() * new_pose;
     last_pose_ = new_pose;
 
@@ -86,7 +105,7 @@ KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const std::vector<Eigen::Vec
 }
 
 KissICP::Vector3dVectorTuple KissICP::Voxelize(const std::vector<Eigen::Vector3d> &frame) const {
-    EASY_FUNCTION(profiler::colors::Orange100);
+    // EASY_FUNCTION(profiler::colors::Orange100);
     const auto voxel_size = config_.voxel_size;
     const auto frame_downsample = kiss_icp::VoxelDownsample(frame, voxel_size * 0.5);
     const auto source = kiss_icp::VoxelDownsample(frame_downsample, voxel_size * 1.5);

@@ -37,7 +37,7 @@ AdaptiveThreshold::AdaptiveThreshold(double initial_threshold,
       num_samples_(1) {}
 
 void AdaptiveThreshold::UpdateModelDeviation(const Sophus::SE3d &current_deviation) {
-    EASY_FUNCTION(profiler::colors::LightBlue100);
+    // EASY_FUNCTION(profiler::colors::LightBlue100);
     const double model_error = [&]() {
         const double theta = Eigen::AngleAxisd(current_deviation.rotationMatrix()).angle();
         const double delta_rot = 2.0 * max_range_ * std::sin(theta / 2.0);

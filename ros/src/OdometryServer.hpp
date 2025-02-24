@@ -28,6 +28,7 @@
 // ROS 2
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
 #include <nav_msgs/msg/odometry.hpp>
@@ -35,6 +36,9 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/header.hpp>
 #include <string>
+// #include <std_msgs/msg/detail/bool__struct.hpp>
+#include "std_msgs/msg/bool.hpp"
+
 
 namespace kiss_icp_ros {
 
@@ -58,38 +62,50 @@ private:
                        const std_msgs::msg::Header &header);
 
     void PublishIMUOdometry(const Sophus::SE3d &transform, const std_msgs::msg::Header &header);
+    
+    void VehicleMovingCallback(const std_msgs::msg::Bool::SharedPtr msg);
 
 private:
     /// Tools for broadcasting TFs.
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    // std::unique_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::unique_ptr<tf2_ros::TransformListener> tf2_listener_;
     bool invert_odom_tf_;
     bool publish_odom_tf_;
     bool publish_debug_clouds_;
-
+    
     /// Data subscribers.
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
     rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr vel_est_sub_;
-
-
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr vehicle_moving_sub_;
+    
+    
     /// Data publishers.
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr frame_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr kpoints_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_publisher_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr IMU_odom_publisher_;
-
+    
     /// KISS-ICP
     std::unique_ptr<kiss_icp::pipeline::KissICP> kiss_icp_;
-
+    
     /// Global/map coordinate frame.
-    std::string lidar_odom_frame_{"odom_lidar"};
-    std::string base_frame_{};
+    std::string lidar_odom_frame_{"hesai_lidar"};
+    std::string base_frame_{"base_link"};
+    std::string pointcloud_topic_{"/lidar_points"};
 
     /// Covariance diagonal
     double position_covariance_;
     double orientation_covariance_;
+
+    // Odom->Base_link transformations
+    Sophus::SE3d last_odom_to_base_link_pose_;
+
+    bool is_vehicle_moving_{false};
+
+    bool profiling_enabled_;
 };
 
 }  // namespace kiss_icp_ros

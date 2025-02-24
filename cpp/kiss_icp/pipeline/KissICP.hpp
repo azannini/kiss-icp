@@ -52,6 +52,8 @@ struct KISSConfig {
 
     // Motion compensation
     bool deskew = true;
+
+    bool profiling_enabled_ = true;
 };
 
 class KissICP {
@@ -68,12 +70,15 @@ public:
           local_map_(config.voxel_size, config.max_range, config.max_points_per_voxel),
           adaptive_threshold_(config.initial_threshold, config.min_motion_th, config.max_range) {
             // EASY_THREAD("KISS-ICP Thread");
-            EASY_PROFILER_ENABLE;
-            // profiler::startListen();
+            if(config.profiling_enabled_){
+                EASY_PROFILER_ENABLE;
+            }
           }
 
 public:
-    Vector3dVectorTuple RegisterFrame(const std::vector<Eigen::Vector3d> &frame,
+    Vector3dVectorTuple RegisterFrame(const bool is_vehicle_moving,
+                                      const Sophus::SE3d delta_pose,
+                                      const std::vector<Eigen::Vector3d> &frame,
                                       const std::vector<double> &timestamps);
 
     Vector3dVectorTuple Voxelize(const std::vector<Eigen::Vector3d> &frame) const;
@@ -89,12 +94,11 @@ public:
     const Sophus::SE3d &delta() const { return last_delta_; }
     Sophus::SE3d &delta() { return last_delta_; }
 
-    void UpdateInitialGuess(const Sophus::SE3d &initial_guess) { initial_guess_ = initial_guess ; }
-
 private:
     Sophus::SE3d last_pose_;
     Sophus::SE3d last_delta_;
-    Sophus::SE3d initial_guess_;
+    Sophus::SE3d initial_guess_odom_to_baselink;
+    Sophus::SE3d last_initial_guess_odom_to_baselink;
 
     // KISS-ICP pipeline modules
     KISSConfig config_;

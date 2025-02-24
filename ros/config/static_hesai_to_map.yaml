@@ -1,0 +1,22 @@
+# Translation in meter [m]
+# Rotation in Quaternions
+
+generated_at: '2025-02-21'
+source_frame: hesai_lidar
+target_frame: map
+
+#Hesai
+rotation:
+    qx: 0.0
+    qy: 0.0
+    qz: 1.0
+    qw: 0.0
+
+translation:
+    x: -0.0338
+    y: -0.0162
+    z: 0.698
+
+
+# To run this manually in the CLI
+# ros2 run tf2_ros static_transform_publisher   --x -0.0338 --y -0.0162 --z 0.698   --qx 0.0 --qy 0.0 --qz 1.0 --qw 0.0  --frame-id  map  --child-frame-id hesai_lidar_static

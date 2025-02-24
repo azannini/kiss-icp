@@ -53,6 +53,8 @@ endif()
 # target_link_libraries(${PROJECT_NAME} ${GPERFTOOLS_LIB})
 # add_definitions(-DPERFTOOLS)
 
+find_package(easy_profiler REQUIRED)
+target_link_libraries(easy_profiler)
 
 # Set build type (repeat here for C++ only consumers)
 if (NOT CMAKE_BUILD_TYPE)
@@ -63,6 +65,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(3rdparty/find_dependencies.cmake)
 include(cmake/CompilerOptions.cmake)
+
+include_directories(${EASY_PROFILER_INCLUDE_DIR})
 
 add_subdirectory(core)
 add_subdirectory(metrics)

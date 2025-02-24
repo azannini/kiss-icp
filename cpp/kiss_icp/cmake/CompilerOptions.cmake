@@ -38,6 +38,7 @@ function(set_global_target_properties target)
             # GNU
             $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fdiagnostics-color=always>
             $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Werror>
+            $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-unused-parameter> #Added to allow to pass parameters in a function, without using them TODO(Andrea): remove this
             $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wall>
             $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wextra>
             $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-pedantic>

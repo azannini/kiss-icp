@@ -24,4 +24,5 @@
 add_library(kiss_icp_pipeline STATIC)
 target_sources(kiss_icp_pipeline PRIVATE KissICP.cpp)
 target_link_libraries(kiss_icp_pipeline PUBLIC kiss_icp_core)
+target_link_libraries(kiss_icp_pipeline PRIVATE easy_profiler)
 set_global_target_properties(kiss_icp_pipeline)

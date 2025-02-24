@@ -1,0 +1,22 @@
+kiss_icp_node:
+  ros__parameters:
+    base_frame: "base_link"
+    lidar_odom_frame: "hesai_lidar"
+    pointcloud_topic: "/lidar_points"
+    publish_odom_tf: true
+    invert_odom_tf: false
+    max_range: 100.0
+    min_range: 0.0
+    deskew: true
+    max_points_per_voxel: 20
+    voxel_size: 1.0 # computed as max_range / 100.00
+    initial_threshold: 2.0
+    min_motion_th: 0.1
+    max_num_iterations: 500
+    convergence_criterion: 0.0001
+    max_num_threads: 0
+    position_covariance: 0.1
+    orientation_covariance: 0.1
+    publish_debug_clouds: true
+    use_sim_time: true
+    profiling_enabled: true
