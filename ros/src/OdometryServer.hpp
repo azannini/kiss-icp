@@ -68,9 +68,14 @@ private:
 private:
     /// Tools for broadcasting TFs.
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-    // std::unique_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::unique_ptr<tf2_ros::TransformListener> tf2_listener_;
+    std::vector<std::array<double, 9>> trajectory_;
+    
+    // TODO(Andrea): recover it dynamically from the TF
+    Sophus::SE3d base_link_to_hesai_static_transform_ = Sophus::SE3d(Eigen::Quaterniond(0.0, 0.0, 0.0, 1.0), Eigen::Vector3d(-0.0338, -0.0162, 0.698));
+    Sophus::SE3d hesai_to_base_link_static_transform_ = base_link_to_hesai_static_transform_.inverse();
+
     bool invert_odom_tf_;
     bool publish_odom_tf_;
     bool publish_debug_clouds_;
@@ -92,7 +97,7 @@ private:
     std::unique_ptr<kiss_icp::pipeline::KissICP> kiss_icp_;
     
     /// Global/map coordinate frame.
-    std::string lidar_odom_frame_{"hesai_lidar"};
+    // std::string lidar_odom_frame_{"hesai_lidar"};
     std::string base_frame_{"base_link"};
     std::string pointcloud_topic_{"/lidar_points"};
 

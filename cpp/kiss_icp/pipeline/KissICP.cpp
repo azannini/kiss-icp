@@ -71,7 +71,7 @@ KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const bool is_vehicle_moving
     // const auto interpolated_delta = Sophus::SE3d::exp(alpha * delta_pose.log() + (1 - alpha) * last_delta_.log());
     // const auto initial_guess = last_pose_ * interpolated_delta;
 
-    auto new_pose = last_pose_;                                                 
+    auto new_pose = last_pose_; // TODO(Andrea): does it make sense to change this to initial_guess?
     if(is_vehicle_moving){
         // Run ICP
         EASY_BLOCK("ICP", profiler::colors::Yellow);
@@ -83,20 +83,19 @@ KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const bool is_vehicle_moving
         EASY_END_BLOCK;
     }
               
-   // Compute the difference between the prediction and the actual estimate
+    // Compute the difference between the prediction and the actual estimate
     const auto model_deviation = initial_guess.inverse() * new_pose;
-    // std::cout << "Model deviation: ["
-    //           << model_deviation.translation().x() << ", "
-    //           << model_deviation.translation().y() << ", "
-    //           << model_deviation.translation().z() << "]\n" << std::endl;
-
+   
     // Update step: threshold, local map, delta, and the last pose
     adaptive_threshold_.UpdateModelDeviation(model_deviation);
 
     EASY_BLOCK("Update Local Map", profiler::colors::Green);
+    // auto new_pose_hesai_frame = new_pose * base_link_to_hesai_transform_;
     local_map_.Update(frame_downsample, new_pose);
     EASY_END_BLOCK;
     
+    
+
     last_delta_ = last_pose_.inverse() * new_pose;
     last_pose_ = new_pose;
 

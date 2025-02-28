@@ -41,6 +41,7 @@
 #include "VoxelUtils.hpp"
 
 #include <easy/profiler.h>
+#include <iostream>
 
 namespace Eigen {
 using Matrix6d = Eigen::Matrix<double, 6, 6>;
@@ -151,7 +152,8 @@ Sophus::SE3d Registration::AlignPointsToMap(const std::vector<Eigen::Vector3d> &
 
     // ICP-loop
     Sophus::SE3d T_icp = Sophus::SE3d();
-    for (int j = 0; j < max_num_iterations_; ++j) {
+    int j = 0;
+    for (j = 0; j < max_num_iterations_; ++j) {
         // Equation (10)
         const auto correspondences = DataAssociation(source, voxel_map, max_distance);
         // Equation (11)
@@ -165,6 +167,16 @@ Sophus::SE3d Registration::AlignPointsToMap(const std::vector<Eigen::Vector3d> &
         // Termination criteria
         if (dx.norm() < convergence_criterion_) break;
     }
+    num_calls_ICP_ += 1;
+    mean_iterations_ICP_ += (j - mean_iterations_ICP_) / num_calls_ICP_;
+    
+    if (j <= max_num_iterations_) {
+        std::cout << "ICP converged after " << j << " iterations" << std::endl;
+    } else {
+        std::cout << "ICP did not converge after " << max_num_iterations_ << " iterations" << std::endl;
+    }
+    num_iterations_ICP_.emplace_back(j);
+    max_distance_ICP_.emplace_back(max_distance);
     // Spit the final transformation
     return T_icp * initial_guess;
 }

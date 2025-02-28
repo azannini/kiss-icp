@@ -1,0 +1,24 @@
+kiss_icp_node:
+  ros__parameters:
+    ICP_config:
+      max_range: 100.0
+      min_range: 0.0
+      max_points_per_voxel: 20
+      # voxel_size: 1.0 # computed as max_range / 100.00
+      initial_threshold: 2.0
+      min_motion_th: 0.1
+      max_num_iterations: 500
+      convergence_criterion: 0.0001
+      position_covariance: 0.1
+      orientation_covariance: 0.1
+      max_num_threads: 0
+      invert_odom_tf: false
+      publish_odom_tf: true
+    PC_config:
+      pointcloud_topic: "/ouster_points" #/perception/lidar_motion_compensator/compensated_pc
+      publish_debug_clouds: true
+      deskew: true
+    base_frame: "base_link"
+    lidar_odom_frame: "os_lidar"
+    use_sim_time: true
+    profiling_enabled: false

@@ -69,10 +69,11 @@ public:
               config.max_num_iterations, config.convergence_criterion, config.max_num_threads),
           local_map_(config.voxel_size, config.max_range, config.max_points_per_voxel),
           adaptive_threshold_(config.initial_threshold, config.min_motion_th, config.max_range) {
-            // EASY_THREAD("KISS-ICP Thread");
             if(config.profiling_enabled_){
-                EASY_PROFILER_ENABLE;
+                  EASY_PROFILER_ENABLE;
+                  EASY_THREAD("KISS-ICP Thread");
             }
+            //TODO(Andrea): Find a smarter way to do this
           }
 
 public:
@@ -94,11 +95,14 @@ public:
     const Sophus::SE3d &delta() const { return last_delta_; }
     Sophus::SE3d &delta() { return last_delta_; }
 
+    double &mean_ICP_iterations() { return registration_.mean_iterations_ICP(); }
+    std::vector<int> &num_iterations_ICP() { return registration_.num_iterations_ICP(); }
+    std::vector<double> &max_distance_ICP() { return registration_.max_distance_ICP(); }
+
 private:
     Sophus::SE3d last_pose_;
     Sophus::SE3d last_delta_;
-    Sophus::SE3d initial_guess_odom_to_baselink;
-    Sophus::SE3d last_initial_guess_odom_to_baselink;
+    Sophus::SE3d base_link_to_hesai_transform_ = Sophus::SE3d(Eigen::Quaterniond(0.0, 0.0, 0.0, 1.0), Eigen::Vector3d(-0.0338, -0.0162, 0.698));
 
     // KISS-ICP pipeline modules
     KISSConfig config_;

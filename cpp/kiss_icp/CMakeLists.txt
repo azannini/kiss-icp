@@ -40,19 +40,6 @@ if(USE_CCACHE)
   endif()
 endif()
 
-# set(CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/")
-# find_library(GPERFTOOLS_LIB NAMES tcmalloc_and_profiler PATHS "/usr/lib/x86_64-linux-gnu/")
-# find_package(gperftools REQUIRED)
-
-# if (GPERFTOOLS_LIB)
-#     message(STATUS "Found gperftools: ${GPERFTOOLS_LIB}")
-# else()
-#     message(FATAL_ERROR "gperftools not found!")
-# endif()
-
-# target_link_libraries(${PROJECT_NAME} ${GPERFTOOLS_LIB})
-# add_definitions(-DPERFTOOLS)
-
 find_package(easy_profiler REQUIRED)
 target_link_libraries(easy_profiler)
 

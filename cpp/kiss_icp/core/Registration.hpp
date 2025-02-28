@@ -38,9 +38,18 @@ struct Registration {
                                   const Sophus::SE3d &initial_guess,
                                   const double max_correspondence_distance,
                                   const double kernel_scale);
+    double &mean_iterations_ICP() { return mean_iterations_ICP_; }
+    std::vector<int> &num_iterations_ICP() { return num_iterations_ICP_; }
+    std::vector<double> &max_distance_ICP() { return max_distance_ICP_; }
 
     int max_num_iterations_;
     double convergence_criterion_;
     int max_num_threads_;
+
+    int num_calls_ICP_ = 0;
+    double mean_iterations_ICP_ = 0.0;
+    std::vector<int> num_iterations_ICP_;
+    std::vector<double> max_distance_ICP_;
+
 };
 }  // namespace kiss_icp

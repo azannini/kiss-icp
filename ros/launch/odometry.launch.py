@@ -80,6 +80,29 @@ def generate_launch_description():
     # Optional ros bag play
     bagfile = LaunchConfiguration("bagfile", default="")
 
+    # Additional parameters
+    base_frame = LaunchConfiguration("base_frame", default="base_link")
+    lidar_odom_frame = LaunchConfiguration("lidar_odom_frame", default="hesai_lidar")
+    pointcloud_topic = LaunchConfiguration("pointcloud_topic", default="/perception/lidar_motion_compensator/compensated_pc")
+    publish_odom_tf = LaunchConfiguration("publish_odom_tf", default="true")
+    invert_odom_tf = LaunchConfiguration("invert_odom_tf", default="false")
+    max_range = LaunchConfiguration("max_range", default="100.0")
+    min_range = LaunchConfiguration("min_range", default="0.0")
+    deskew = LaunchConfiguration("deskew", default="false")
+    max_points_per_voxel = LaunchConfiguration("max_points_per_voxel", default="20")
+    voxel_size = LaunchConfiguration("voxel_size", default="1.0")
+    initial_threshold = LaunchConfiguration("initial_threshold", default="2.0")
+    min_motion_th = LaunchConfiguration("min_motion_th", default="0.1")
+    max_num_iterations = LaunchConfiguration("max_num_iterations", default="500")
+    convergence_criterion = LaunchConfiguration("convergence_criterion", default="0.0001")
+    max_num_threads = LaunchConfiguration("max_num_threads", default="0")
+    position_covariance = LaunchConfiguration("position_covariance", default="0.1")
+    orientation_covariance = LaunchConfiguration("orientation_covariance", default="0.1")
+    publish_debug_clouds = LaunchConfiguration("publish_debug_clouds", default="true")
+    use_sim_time = LaunchConfiguration("use_sim_time", default="true")
+    profiling_enabled = LaunchConfiguration("profiling_enabled", default="true")
+
+
 
     # KISS-ICP node variables
     package_name = "kiss_icp"
