@@ -77,8 +77,8 @@ using utils::PointCloud2ToEigen;
 
 OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
     : rclcpp::Node("kiss_icp_node", options) {
-    // base_frame_ = declare_parameter<std::string>("base_frame", base_frame_);
-    // lidar_odom_frame_ = declare_parameter<std::string>("lidar_odom_frame", lidar_odom_frame_);
+    base_frame_ = declare_parameter<std::string>("base_frame", base_frame_);
+    lidar_odom_frame_ = declare_parameter<std::string>("lidar_odom_frame", lidar_odom_frame_);
     pointcloud_topic_ = declare_parameter<std::string>("PC_config.pointcloud_topic", pointcloud_topic_);
     publish_odom_tf_ = declare_parameter<bool>("ICP_config.publish_odom_tf", publish_odom_tf_);
     invert_odom_tf_ = declare_parameter<bool>("ICP_config.invert_odom_tf", invert_odom_tf_);
@@ -108,6 +108,7 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
         config.min_range = 0.0;
     }
     //TODO(Andrea): check if this makes sense or not (Do I need this KISS_CONFIG?)
+    // config.initial_guess_mode = static_cast<kiss_icp::pipeline::KISSConfig::InitialGuess>(declare_parameter<int>("ICP_config.initial_guess_mode", config.initial_guess_mode));
     config.profiling_enabled_ = profiling_enabled_;
 
     // Construct the main KISS-ICP odometry node
@@ -126,7 +127,7 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
         "tf", rclcpp::SystemDefaultsQoS(),
         [this](const tf2_msgs::msg::TFMessage::SharedPtr msg) {
             for (const auto &transform : msg->transforms) {
-                if (transform.header.frame_id == "odom" && transform.child_frame_id == "base_link") {
+                if (transform.header.frame_id == "odom" && transform.child_frame_id == base_frame_) {
                     // Process the transform
                     // RCLCPP_INFO(this->get_logger(), "Received transform from odom to base_link");
                       this->PublishIMUOdometry(tf2::transformToSophus(transform), transform.header);
@@ -196,10 +197,12 @@ OdometryServer::~OdometryServer() {
         
         // Define file paths for profiler and trajectory data
         std::string profiler_file = run_dir + "/profiler.prof";
-        std::string trajectory_file = run_dir + "/trajectory.csv";
-        std::string ICP_iterations_file = run_dir + "/ICP_iterations.yaml";
-        std::string ICP_thresholds_file = run_dir + "/ICP_thresholds.yaml";
-        std::string launch_params_file = run_dir + "/launch_params_hesai.yaml";
+        std::string trajectory_file = run_dir + "/trajectory.txt";
+        std::string ICP_iterations_file = run_dir + "/ICP_iterations.csv";
+        std::string ICP_thresholds_file = run_dir + "/ICP_thresholds.csv";
+        // std::string launch_params_file = run_dir + "/launch_params_hesai.yaml";
+        std::string launch_params_file = run_dir + "/launch_params_ouster.yaml";
+
         
         // Save profiling data to file
         profiler::dumpBlocksToFile(profiler_file.c_str());
@@ -207,12 +210,13 @@ OdometryServer::~OdometryServer() {
         
         // Save trajectory CSV data to file
         std::ofstream file(trajectory_file);
-        file << "time_sec,time_nsec,x,y,z,qx,qy,qz,qw\n";
+        file << "# timestamp x y z q_x q_y q_z q_w\n";
         for (const auto &pose : trajectory_) {
-            for (size_t i = 0; i < pose.size(); ++i) {
+            file << std::fixed << std::setprecision(4) << pose[0] << " "; // Print timestamp with full precision
+            for (size_t i = 1; i < pose.size(); ++i) {
             file << pose[i];
             if (i < pose.size() - 1) {
-                file << ",";
+                file << " ";
             }
             }
             file << "\n";
@@ -224,12 +228,14 @@ OdometryServer::~OdometryServer() {
       
         // Save ICP iterations to a CSV file
         std::ofstream icp_iterations_file(ICP_iterations_file);
+        icp_iterations_file << "# mean_iterations: " << kiss_icp_->mean_ICP_iterations() << "\n";
         icp_iterations_file << "iteration,num_iterations\n";
         const auto &iterations = kiss_icp_->num_iterations_ICP();
         for (size_t i = 0; i < iterations.size(); ++i) {
             icp_iterations_file << i << "," << iterations[i] << "\n";
         }
         icp_iterations_file.close();
+
         RCLCPP_INFO(this->get_logger(), "ICP iterations saved to %s", ICP_iterations_file.c_str());
         
         
@@ -269,7 +275,7 @@ void OdometryServer::RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSha
     const auto timestamps = GetTimestamps(msg);
 
     // Retrieve delta_pose (current - previous odom_to_base_link)
-    const auto odom_to_base_link_pose = LookupTransform("odom", "base_link", tf2_buffer_);
+    const auto odom_to_base_link_pose = LookupTransform("odom", base_frame_, tf2_buffer_);
     const auto delta_pose_odom_frame = last_odom_to_base_link_pose_.inverse() * odom_to_base_link_pose;
     const auto delta_pose_hesai_frame = hesai_to_base_link_static_transform_ * delta_pose_odom_frame * base_link_to_hesai_static_transform_;
     last_odom_to_base_link_pose_ = odom_to_base_link_pose;
@@ -311,7 +317,7 @@ void OdometryServer::PublishIMUOdometry(const Sophus::SE3d &transform, const std
     nav_msgs::msg::Odometry odom_msg;
     odom_msg.header.stamp = header.stamp;
     odom_msg.header.frame_id = "odom";
-    odom_msg.child_frame_id = "base_link";
+    odom_msg.child_frame_id = base_frame_;
     odom_msg.pose.pose = tf2::sophusToPose(transform);
 
     odom_msg.pose.covariance.fill(0.0);
@@ -344,7 +350,7 @@ void OdometryServer::PublishOdometry(const Sophus::SE3d &kiss_pose,
     nav_msgs::msg::Odometry map_to_bl_msg;
     map_to_bl_msg.header.stamp = header.stamp;
     map_to_bl_msg.header.frame_id = "map";
-    map_to_bl_msg.child_frame_id = "base_link";
+    map_to_bl_msg.child_frame_id = base_frame_;
     map_to_bl_msg.pose.pose = tf2::sophusToPose(map_to_base_link_pose);
     map_to_bl_msg.pose.covariance.fill(0.0);
     map_to_bl_msg.pose.covariance[0] = position_covariance_;
@@ -357,9 +363,8 @@ void OdometryServer::PublishOdometry(const Sophus::SE3d &kiss_pose,
 
     // Save pose data to trajectory_ for KPI CSV export.
     // Only the following values are saved: time_sec, time_nsec, x, y, z, qx, qy, qz, qw
-    trajectory_.emplace_back(std::array<double, 9>{
-        static_cast<double>(header.stamp.sec),
-        static_cast<double>(header.stamp.nanosec),
+    trajectory_.emplace_back(std::array<double, 8>{
+        static_cast<double>(header.stamp.sec) + static_cast<double>(header.stamp.nanosec) / 1e9,
         map_to_bl_msg.pose.pose.position.x,
         map_to_bl_msg.pose.pose.position.y,
         map_to_bl_msg.pose.pose.position.z,
@@ -381,7 +386,7 @@ void OdometryServer::PublishClouds(const std::vector<Eigen::Vector3d> frame,
 
     // Publish the local map in the "hesai_lidar_static" frame because the map represents the global reference.
     auto local_map_header = header;
-    local_map_header.frame_id = "hesai_lidar_static";
+    local_map_header.frame_id = lidar_odom_frame_;
     map_publisher_->publish(std::move(EigenToPointCloud2(kiss_map, local_map_header)));
 }
 }  // namespace kiss_icp_ros

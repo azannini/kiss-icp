@@ -35,6 +35,7 @@
 namespace kiss_icp::pipeline {
 
 struct KISSConfig {
+    enum InitialGuess { CV, VE };
     // map params
     double voxel_size = 1.0;
     double max_range = 100.0;
@@ -52,6 +53,9 @@ struct KISSConfig {
 
     // Motion compensation
     bool deskew = true;
+
+    // Initial Guess Mode
+    InitialGuess initial_guess_mode;
 
     bool profiling_enabled_ = true;
 };

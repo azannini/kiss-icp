@@ -1,24 +1,25 @@
 kiss_icp_node:
   ros__parameters:
     ICP_config:
-      max_range: 50.0 # paper: 100.0
+      max_range: 100.0 # paper: 100.0
       min_range: 0.0   # paper: 0.0
-      max_points_per_voxel: 50
+      max_points_per_voxel: 50 # paper: 20.0
       # voxel_size: 1.0 # computed as max_range / 100.00
       initial_threshold: 2.0 # paper: 2.0
       min_motion_th: 0.1  # paper: 0.1
-      max_num_iterations: 5000 # paper: 500
+      max_num_iterations: 500 # paper: 500
       convergence_criterion: 1e-6 # paper: 1e-4
       position_covariance: 0.1 # paper: 0.1
       orientation_covariance: 0.1 # paper: 0.1
       max_num_threads: 12 
       invert_odom_tf: false
       publish_odom_tf: true
+      initial_guess_mode: 1 #0: Constant Velocity, 1: Velocity Estimation
     PC_config:
-      pointcloud_topic: "/perception/lidar_motion_compensator/compensated_pc" #/perception/lidar_motion_compensator/compensated_pc or /ground_removed_point_cloud
+      pointcloud_topic: "/ground_removed_point_cloud" #/perception/lidar_motion_compensator/compensated_pc or /ground_removed_point_cloud
       publish_debug_clouds: true
-      deskew: false
-    # base_frame: "base_link"
-    # lidar_odom_frame: "hesai_lidar"
+      deskew: true
+    base_frame: "base_link"
+    lidar_odom_frame: "hesai_lidar_static"
     use_sim_time: true
-    profiling_enabled: true 
+    profiling_enabled: true

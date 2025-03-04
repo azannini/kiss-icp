@@ -57,14 +57,22 @@ KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const bool is_vehicle_moving
     const double sigma = adaptive_threshold_.ComputeThreshold();
     EASY_END_BLOCK;
 
-
-    // =========== Compute initial_guess for ICP =========== 
-    // ----- constant-velocity approach --------------------
-    // const auto initial_guess = last_pose_ * last_delta_;
+    Sophus::SE3d initial_guess = Sophus::SE3d();
+    // =========== Compute initial_guess for ICP ===========
+    switch (config_.initial_guess_mode)
+    {
+    case KISSConfig::InitialGuess::CV:
+        // ----- constant-velocity approach --------------------
+        initial_guess = last_pose_ * last_delta_;
+        break;
+    case KISSConfig::InitialGuess::VE:
+        // ----- Velocity Estimation 3DoF prior -------------------------------
+        initial_guess = last_pose_ * delta_pose;
+        break;
+    default:
+        break;
+    } 
     
-    // ----- IMU prior -------------------------------
-    // use VE delta_pose as initial_guess
-    const auto initial_guess = last_pose_ * delta_pose;
 
     // ----- IMU prior + constant-velocity approach --------
     // const double alpha = 0.8;  // Weight factor on IMU vs. ICP
@@ -93,8 +101,6 @@ KissICP::Vector3dVectorTuple KissICP::RegisterFrame(const bool is_vehicle_moving
     // auto new_pose_hesai_frame = new_pose * base_link_to_hesai_transform_;
     local_map_.Update(frame_downsample, new_pose);
     EASY_END_BLOCK;
-    
-    
 
     last_delta_ = last_pose_.inverse() * new_pose;
     last_pose_ = new_pose;
